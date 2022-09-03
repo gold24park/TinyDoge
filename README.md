@@ -6,6 +6,14 @@
 
 ![screenshot](./screenshot.png)
 
+# 설치방법
+### Windows
+- [TinyDoge_Win_Portable.zip](https://github.com/lx5475/TinyDoge/raw/master/TinyDoge_Win_Portable.zip) 다운로드
+- `TinyDoge_Win_Portable.zip` 압축을 해제합니다.
+- `TinyDoge.exe` 바탕화면 바로가기를 만듭니다.
+
+### OSX
+- 맥북이 없어 빌린다음에 작성하겠음...
 
 # Performance
 ![comparison](./comparison.png)
@@ -21,11 +29,4 @@
 - `test_images/`내의 파일들을 테스트한 결과입니다.
 - 결과 파일들은 `test_images_tinydoge/`, `test_images_tinypng/` 폴더에서 확인하실 수 있습니다.
 
-# 설치방법
-### Windows
-- [TinyDoge_Win_Portable.zip](https://github.com/lx5475/TinyDoge/raw/master/TinyDoge_Win_Portable.zip) 다운로드
-- `TinyDoge_Win_Portable.zip` 압축을 해제합니다.
-- `TinyDoge.exe` 바탕화면 바로가기를 만듭니다.
 
-### OSX
-- 맥북이 없어 빌린다음에 작성하겠음...
