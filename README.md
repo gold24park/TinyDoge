@@ -23,6 +23,7 @@
 
 # 설치방법
 ### Windows
+- [TinyDoge_Win_Portable.zip](https://github.com/lx5475/TinyDoge/raw/master/TinyDoge_Win_Portable.zip) 다운로드
 - `TinyDoge_Win_Portable.zip` 압축을 해제합니다.
 - `TinyDoge.exe` 바탕화면 바로가기를 만듭니다.
 
