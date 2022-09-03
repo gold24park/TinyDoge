@@ -190,7 +190,7 @@ class TinyRaccoon(QMainWindow):
             for file in files:
                 fn, ext = os.path.splitext(file)
                 if ext.lower() == '.png':
-                    self.image_files.append(Models.ImageFile(file, os.path.getsize(file), 0))
+                    self.image_files.append(Models.ImageFile(os.path.abspath(file), os.path.getsize(file), 0))
             filenames = "\n".join([f"{i+1}. {x.filename}" for i, x in enumerate(self.image_files)])
             self.fileNamesLabel.setText(
                 f'''
