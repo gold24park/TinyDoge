@@ -13,7 +13,9 @@
 - `TinyDoge.exe` 바탕화면 바로가기를 만듭니다.
 
 ### OSX
-- 맥북이 없어 빌린다음에 작성하겠음...
+- [TinyDoge.dmg](https://github.com/lx5475/TinyDoge/raw/master/TinyDoge.dmg) 다운로드
+- `TinyDoge.dmg`를 실행합니다.
+- `TinyDoge`를 `Applications`로 드래그 합니다.
 
 # Performance
 ![comparison](./comparison.png)
