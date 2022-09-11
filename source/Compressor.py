@@ -2,10 +2,13 @@ import os
 import platform
 import shutil
 import threading
+import time
 from enum import Enum
 from pathlib import Path
 from typing import Callable
 import subprocess
+
+from PyQt5.QtCore import *
 
 class CompressState(Enum):
     IDLE = 0
@@ -26,16 +29,13 @@ class Compressor:
         if platform_name == 'Darwin':
             self.quant_file = os.path.join(pngquant_path, 'macos', 'pngquant')
 
-    def compress(self, avg_quality: int, image_files: list, on_progress: Callable, on_error: Callable):
+    def compress(self, avg_quality: int, image_files: list, image_file_signal, err_signal):
         if avg_quality == 0:
             avg_quality = 80 # default
         avg_quality = max(avg_quality, 0)
         avg_quality = min(avg_quality, 100)
         self.q = avg_quality
-        t = threading.Thread(target=self.__compress__, args=(image_files, on_progress, on_error))
-        t.start()
 
-    def __compress__(self, image_files: list, on_progress: Callable, on_error: Callable):
         try:
             # 한글깨짐때문에 넣음
             os.system('chcp 65001')
@@ -67,7 +67,7 @@ class Compressor:
                     shutil.copy(temp_files[best_idx], image_file.filename)
 
                 image_files[index].result_size = min_size
-                on_progress(index, image_file)
+                image_file_signal.emit(image_file)
 
             for tmp in temp_files:
                 try:
@@ -76,4 +76,4 @@ class Compressor:
                 finally:
                     pass
         except BaseException as e:
-            on_error(e)
+            err_signal.emit(e)

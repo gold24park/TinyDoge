@@ -1,26 +1,36 @@
 import os.path
+import random
 import sys
 import traceback
 from pathlib import Path
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QFont, QCursor
+from PyQt5.QtCore import *
+from PyQt5.QtGui import QIcon, QFont, QCursor, QMovie
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QAction, QDesktopWidget, QLabel, \
     QVBoxLayout, QFileDialog, QProgressBar, QHBoxLayout
-from PyQt5.uic.properties import QtWidgets
+from PyQt5.uic.properties import QtWidgets, QtCore
 
 import Models
 import ScrollLabel
 from Compressor import Compressor, CompressState
 from Config import Config
+from CompressWorker import CompressWorker
 
 
 class TinyRaccoon(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.compressor = Compressor()
+        self.thread = QThread()
+        self.worker = CompressWorker()
+        self.worker.moveToThread(self.thread)
+
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.onFinished)
+        self.worker.image_file_signal.connect(self.onProgress)
+        self.worker.err_signal.connect(self.onError)
+
         self.mainColor = '#1ee38d'
         self.mainColorDark = '#17bd75'
         self.backgroundColor = '#252a2e'
@@ -32,10 +42,11 @@ class TinyRaccoon(QMainWindow):
         self.onUploadFile([])
 
         self.config = Config()
+        self.worker.avg_quality = int(self.config.get('avg_quality', 80))
 
     def initUI(self):
 
-        self.setWindowTitle("Tiny Doge")
+        self.setWindowTitle("TinyDoge")
         self.setWindowIcon(QIcon('icon.png'))
         self.setStyleSheet(f'''
             color: {self.textColor};
@@ -59,9 +70,9 @@ class TinyRaccoon(QMainWindow):
 
     def setImageInputLayout(self):
         vbox = QVBoxLayout()
-        self.title = QLabel("Tiny Doge\nImage Compressor\n")
+        self.title = QLabel("TinyDoge\nImage Compressor")
         self.title.setFont(QFont('consolas', 18))
-        self.title.setFixedHeight(180)
+        self.title.setFixedHeight(100)
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setStyleSheet(f'''
             color: {self.highlightColor};
@@ -70,7 +81,7 @@ class TinyRaccoon(QMainWindow):
 
         self.btnImageUpload = QPushButton('&\n\nDrag Images Here or Click to Find\n\n', self)
         self.btnImageUpload.setFont(QFont('consolas'))
-        self.btnImageUpload.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
+        self.btnImageUpload.setCursor(QCursor(Qt.PointingHandCursor))
         self.btnImageUpload.setStyleSheet(f'''
             QPushButton {{
                 background-color: {self.backgroundColor};
@@ -108,7 +119,7 @@ class TinyRaccoon(QMainWindow):
 
     def setCompressButtonLayout(self):
         self.btnCompress = QPushButton('&Compress', self)
-        self.btnCompress.setCursor(QCursor(QtCore.Qt.PointingHandCursor))
+        self.btnCompress.setCursor(QCursor(Qt.PointingHandCursor))
         self.btnCompress.setStyleSheet(f'''
             QPushButton {{
                 color: {self.backgroundColor};
@@ -123,17 +134,34 @@ class TinyRaccoon(QMainWindow):
                 color: white;
             }}
         ''')
-        self.btnCompress.clicked.connect(self.compressImages)
+        self.btnCompress.clicked.connect(self.onClickCompress)
+
         vbox = QVBoxLayout()
         tipsLabel = QLabel('* png를 제외한 나머지 확장자를 지원하지 않습니다.\n* 압축은 원본파일을 바로 덮어씁니다.\n* 손실압축이므로 여러번 압축하면 처참해질수있습니다.')
-        tipsLabel.setFont(QFont('consolas', 8))
+        tipsLabel.setFont(QFont('consolas', 10))
         vbox.addWidget(tipsLabel)
         vbox.addWidget(self.btnCompress)
         self.vbox.addLayout(vbox)
 
+    def getRandomMovie(self):
+        dg = random.choice([1, 1, 1, 2, 3, 4])
+        dg_path = os.path.join(os.getcwd(), 'assets', f'doge{int(dg)}.gif')
+        return QMovie(dg_path, QByteArray(), self)
+
     def setProgressLayout(self):
         vbox = QVBoxLayout()
         hbox = QHBoxLayout()
+
+        # dancing doge
+        hbox2 = QHBoxLayout()
+        self.dogeLabel = QLabel('Doge')
+        self.dogeLabel.setFixedSize(100, 100)
+        self.dogeLabel.setScaledContents(True)
+        self.dogeLabel.setAlignment(Qt.AlignCenter)
+        hbox2.addWidget(self.dogeLabel)
+        vbox.addLayout(hbox2)
+
+        # progress state textviews
         self.processingTitle = QLabel('Processing')
         self.processingTitle.setStyleSheet(f'''
             font-family: consolas;
@@ -145,6 +173,8 @@ class TinyRaccoon(QMainWindow):
         self.processingFileLabel.setAlignment(Qt.AlignRight)
         hbox.addWidget(self.processingFileLabel)
         vbox.addLayout(hbox)
+
+        # progresbar
         self.progressBar = QProgressBar()
         self.progressBar.setValue(0)
         self.progressBar.setMaximum(100)
@@ -187,10 +217,15 @@ class TinyRaccoon(QMainWindow):
             self.fileNamesLabel.label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
             self.image_files = []
             # png 파일만 더한다.
-            for file in files:
+            for (i, file) in enumerate(files):
                 fn, ext = os.path.splitext(file)
                 if ext.lower() == '.png':
-                    self.image_files.append(Models.ImageFile(os.path.abspath(file), os.path.getsize(file), 0))
+                    self.image_files.append(Models.ImageFile(
+                        id=i,
+                        filename=os.path.abspath(file),
+                        size=os.path.getsize(file),
+                        result_size=0
+                    ))
             filenames = "\n".join([f"{i+1}. {x.filename}" for i, x in enumerate(self.image_files)])
             self.fileNamesLabel.setText(
                 f'''
@@ -228,15 +263,20 @@ class TinyRaccoon(QMainWindow):
                 self.config.set('recent_path', str(Path(files[0][0]).parent))
             self.onUploadFile(files[0])
 
+    def onClickCompress(self):
+        if self.__state == CompressState.COMPRESSING:
+            self.stopCompress()
+        else:
+            self.compressImages()
+
     def compressImages(self):
         if len(self.image_files) > 0 and self.__state == CompressState.IDLE:
             self.setState(CompressState.COMPRESSING)
-            self.compressor.compress(
-                avg_quality=int(self.config.get('avg_quality', 80)),
-                image_files=self.image_files,
-                on_progress=self.onProgress,
-                on_error=self.onError
-            )
+            self.worker.image_files = self.image_files
+            self.thread.start()
+
+    def stopCompress(self):
+        self.worker.finished.emit(1)
 
     def setState(self, state):
         self.__state = state
@@ -252,13 +292,19 @@ class TinyRaccoon(QMainWindow):
             self.btnImageUpload.setFixedHeight(120)
             self.btnImageUpload.setAutoFillBackground(True)
             self.btnImageUpload.show()
-            self.btnCompress.show()
+            self.dogeLabel.hide()
+            self.btnCompress.setText("Compress")
         if self.__state == CompressState.COMPRESSING:
             self.fileNamesLabel.setEnabled(False)
             self.title.setText(f"Doge's busy now")
+            movie = self.getRandomMovie()
+            self.dogeLabel.setMovie(movie)
+            movie.start()
+            self.dogeLabel.show()
+            self.progressBar.setValue(0)
             self.btnImageUpload.setFixedHeight(0)
             self.btnImageUpload.hide()
-            self.btnCompress.hide()
+            self.btnCompress.setText("Stop")
             for v in processingViews:
                 v.show()
 
@@ -267,17 +313,29 @@ class TinyRaccoon(QMainWindow):
         self.setState(CompressState.IDLE)
         self.title.setText(f"Sorry...Error!\n{str(ex)}")
 
-    def onProgress(self, index: int, image_file: Models.ImageFile):
-        if index == len(self.image_files) - 1:
+    def onFinished(self, exit_code: int):
+        try:
+            if exit_code != 0:
+                raise Exception("Interrupted")
             original = sum(f.size for f in self.image_files)
             result = sum(f.result_size for f in self.image_files)
             save_rate = 100 - (100 * result / original)
+
             self.title.setText(f'Completed!\nYou saved {int(save_rate)}% for {len(self.image_files)} images.')
+        except Exception as e:
+            self.title.setText('Doge knows when to stop :)')
+        finally:
             self.onUploadFile([])
             self.setState(CompressState.IDLE)
-        else:
-            self.progressBar.setValue(int(index / len(self.image_files) * 100))
+
+
+    def onProgress(self, image_file: Models.ImageFile):
+        try:
+            self.image_files[image_file.id] = image_file
+            self.progressBar.setValue(int((image_file.id + 1) / len(self.image_files) * 100))
             self.processingFileLabel.setText(Path(image_file.filename).name)
+        except IndexError as e:
+            pass
 
 
 def excepthook(exc_type, exc_value, exc_tb):
