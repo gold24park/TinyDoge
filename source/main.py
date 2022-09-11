@@ -8,13 +8,14 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import QIcon, QFont, QCursor, QMovie
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QAction, QDesktopWidget, QLabel, \
     QVBoxLayout, QFileDialog, QProgressBar, QHBoxLayout
-from PyQt5.uic.properties import QtWidgets, QtCore
+from PyQt5.uic.properties import QtWidgets
 
 import Models
 import ScrollLabel
-from Compressor import Compressor, CompressState
-from Config import Config
 from CompressWorker import CompressWorker
+from Compressor import CompressState
+from Config import Config
+from Paths import getRootPath
 
 
 class TinyRaccoon(QMainWindow):
@@ -29,7 +30,6 @@ class TinyRaccoon(QMainWindow):
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.onFinished)
         self.worker.image_file_signal.connect(self.onProgress)
-        self.worker.err_signal.connect(self.onError)
 
         self.mainColor = '#1ee38d'
         self.mainColorDark = '#17bd75'
@@ -145,7 +145,7 @@ class TinyRaccoon(QMainWindow):
 
     def getRandomMovie(self):
         dg = random.choice([1, 1, 1, 2, 3, 4])
-        dg_path = os.path.join(os.getcwd(), 'assets', f'doge{int(dg)}.gif')
+        dg_path = os.path.join(getRootPath(), 'assets', f'doge{int(dg)}.gif')
         return QMovie(dg_path, QByteArray(), self)
 
     def setProgressLayout(self):
@@ -308,22 +308,20 @@ class TinyRaccoon(QMainWindow):
             for v in processingViews:
                 v.show()
 
-    def onError(self, ex: BaseException):
-        self.onUploadFile([])
-        self.setState(CompressState.IDLE)
-        self.title.setText(f"Sorry...Error!\n{str(ex)}")
-
-    def onFinished(self, exit_code: int):
+    def onFinished(self, exit_obj: Models.ExitObject):
         try:
-            if exit_code != 0:
-                raise Exception("Interrupted")
-            original = sum(f.size for f in self.image_files)
-            result = sum(f.result_size for f in self.image_files)
-            save_rate = 100 - (100 * result / original)
+            if exit_obj.code == 0:
+                original = sum(f.size for f in self.image_files)
+                result = sum(f.result_size for f in self.image_files)
+                save_rate = 100 - (100 * result / original)
 
-            self.title.setText(f'Completed!\nYou saved {int(save_rate)}% for {len(self.image_files)} images.')
+                self.title.setText(f'Completed!\nYou saved {int(save_rate)}% for {len(self.image_files)} images.')
+            elif exit_obj.code == 1:
+                self.title.setText('Doge knows when to stop :)')
+            else:
+                self.title.setText(f"Sorry...Error!\n{str(exit_obj.exception)}")
         except Exception as e:
-            self.title.setText('Doge knows when to stop :)')
+            self.title.setText('TinyDoge\nImage Compressor')
         finally:
             self.onUploadFile([])
             self.setState(CompressState.IDLE)
@@ -347,6 +345,7 @@ def excepthook(exc_type, exc_value, exc_tb):
 
 
 if __name__ == '__main__':
+    print('start')
     sys.excepthook = excepthook
     app = QApplication(sys.argv)
     ex = TinyRaccoon()
