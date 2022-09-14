@@ -45,10 +45,11 @@ class Compressor:
             os.path.join(self.temp_path, 'image3.png')
         ]
 
-        for tmp in temp_files:
-            Path(tmp).touch()
-
         for index, image_file in enumerate(image_files):
+            for tmp in temp_files:
+                if os.path.exists(tmp):
+                    os.remove(tmp)
+                Path(tmp).touch()
             # shell True 해줘야 console이 안보인다.
             subprocess.run(
                 fr'{self.quant_file} --floyd=0.32 --posterize=1 --speed=1 --quality={max(self.q - 20, 20)}-{min(self.q + 5, 100)} --strip --force -o {temp_files[0]} "{image_file.filename}"',
