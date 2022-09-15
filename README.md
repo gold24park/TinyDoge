@@ -7,12 +7,12 @@
 ![screenshot](./screenshot.png)
 
 # 설치방법
-### Windows
-- [TinyDoge_Win_Portable.zip](https://github.com/lx5475/TinyDoge/raw/master/TinyDoge_Win_Portable.zip) 다운로드
-- `TinyDoge_Win_Portable.zip` 압축을 해제합니다.
-- `TinyDoge.exe` 바탕화면 바로가기를 만듭니다.
+### 🪟 Windows
+- [TinyDoge.exe](https://github.com/lx5475/TinyDoge/raw/master/TinyDoge.exe) 다운로드
+- `TinyDoge.exe`를 실행합니다.
+- 필요한 경우, 바탕화면에 바로가기를 만드세요.
 
-### OSX
+### 🍎 OSX
 - [TinyDoge.dmg](https://github.com/lx5475/TinyDoge/raw/master/TinyDoge.dmg) 다운로드
 - `TinyDoge.dmg`를 실행합니다.
 - `TinyDoge`를 `Applications`로 드래그 합니다.
